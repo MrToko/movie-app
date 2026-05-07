@@ -26,6 +26,7 @@ const HomeScreen = () => {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchMovies = async (pageNum: number, isNewSearch = false) => {
+    // Bu fonksiyon, belirtilen sayfa numarası ve arama sorgusuyla OMDB API'sine istek gönderir ve sonuçları işler.
     if (!query) {
       setMovies([]);
       setHasMore(false);
@@ -37,6 +38,7 @@ const HomeScreen = () => {
     setError("");
 
     try {
+      // API'den veri çekmeye çalışır. Eğer başarılı olursa, gelen verileri işler ve state'i günceller.
       const res = await searchMovies(query, pageNum);
 
       if (res.Response === "True") {
@@ -45,11 +47,13 @@ const HomeScreen = () => {
         setHasMore(incomingMovies.length === 10);
 
         setMovies((prev) => {
+          // Gelen filmleri mevcut film listesine ekler. Eğer bu yeni bir arama ise, mevcut listeyi temizler ve sadece yeni gelen filmleri gösterir.
           if (pageNum === 1) return incomingMovies;
 
           const uniqueMovies = incomingMovies.filter(
+            // Bu filtreleme işlemi, yeni gelen filmler arasında mevcut film listesinde olmayanları seçer. Böylece aynı film birden fazla kez gösterilmez.
             (movie: OmdbSearchItem) =>
-              !prev.some((prevMovie) => prevMovie.imdbID === movie.imdbID),
+              !prev.some((prevMovie) => prevMovie.imdbID === movie.imdbID), // Her yeni gelen film için, mevcut film listesinde aynı imdbID'ye sahip bir film olup olmadığını kontrol eder. Eğer yoksa, bu filmi uniqueMovies listesine ekler.
           );
 
           return [...prev, ...uniqueMovies];
@@ -73,6 +77,7 @@ const HomeScreen = () => {
   };
 
   const onSubmit = () => {
+    // Bu fonksiyon, arama butonuna basıldığında veya klavyede arama tuşuna basıldığında çağrılır. Arama sorgusunu sıfırlar, sayfa numarasını 1 yapar, mevcut film listesini temizler ve yeni bir arama başlatır.
     setPage(1);
     setMovies([]);
     setHasMore(true);
@@ -142,7 +147,7 @@ const HomeScreen = () => {
           </Text>
         </View>
       ) : (
-        <FlatList
+        <FlatList // Bu FlatList, çekilen filmleri listelemek için kullanılır. Her bir film için MovieCard bileşeni render edilir. Ayrıca, sayfanın sonuna gelindiğinde daha fazla film yüklemek için onEndReached fonksiyonu tanımlanır.
           data={movies}
           renderItem={({ item }) => <MovieCard movie={item} />}
           keyExtractor={(item, index) => `${item.imdbID}-${index}`}

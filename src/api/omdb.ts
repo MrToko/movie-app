@@ -12,7 +12,7 @@ export type OmdbSearchItem = {
   Poster: string;
 };
 
-async function searchMovies(query: string, page: number = 1) {
+async function searchMovies(query: string, page: number = 1) { // Bu fonksiyon, OMDB API'sine bir arama sorgusu gönderir ve sonuçları döndürür.
   try {
     const url = `${API_BASE}?apikey=${API_KEY}&s=${encodeURIComponent(
       query
