@@ -10,36 +10,92 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
 import { s, vs } from "react-native-size-matters";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import searchMovies, { OmdbSearchItem } from "../api/omdb";
 import MovieCard from "../components/MovieCard";
 
 const HomeScreen = () => {
   const [query, setQuery] = useState("Batman");
   const [movies, setMovies] = useState<OmdbSearchItem[]>([]);
+
   const [loader, setLoader] = useState(false);
   const [error, setError] = useState("");
 
-  const onSubmit = async () => {
-    setLoader(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchMovies = async (pageNum: number, isNewSearch = false) => {
+    if (!query) {
+      setMovies([]);
+      setHasMore(false);
+      return;
+    }
+
+    if (isNewSearch) setLoader(true);
+
     setError("");
 
     try {
-      const res = await searchMovies(query);
+      const res = await searchMovies(query, pageNum);
+
       if (res.Response === "True") {
         const incomingMovies = res.Search || [];
-        setMovies(incomingMovies);
+
+        setHasMore(incomingMovies.length === 10);
+
+        setMovies((prev) => {
+          if (pageNum === 1) return incomingMovies;
+
+          const uniqueMovies = incomingMovies.filter(
+            (movie: OmdbSearchItem) =>
+              !prev.some((prevMovie) => prevMovie.imdbID === movie.imdbID),
+          );
+
+          return [...prev, ...uniqueMovies];
+        });
       } else {
-        setMovies([]);
-        setError(res.Error || "No movies found");
+        if (pageNum === 1) {
+          setMovies([]);
+          setError(res.Error || "No movies found");
+        }
+
+        setHasMore(false);
       }
     } catch {
-      setError("something went wrong while fetching movies");
-      setMovies([]);
+      if (pageNum === 1) {
+        setMovies([]);
+        setError("Something went wrong");
+      }
+    } finally {
+      if (isNewSearch) setLoader(false);
     }
-
-    setLoader(false);
   };
+
+  const onSubmit = () => {
+    setPage(1);
+    setMovies([]);
+    setHasMore(true);
+    fetchMovies(1, true);
+  };
+
+  const loadMore = async () => {
+    if (!hasMore || loader || loadingMore) return;
+
+    setLoadingMore(true);
+    const nextPage = page + 1;
+
+    try {
+      await fetchMovies(nextPage, false);
+      setPage(nextPage);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    onSubmit();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
@@ -51,7 +107,7 @@ const HomeScreen = () => {
           placeholder="Search (e.g., batman)"
           placeholderTextColor={colors.inActiveColor}
           returnKeyType="search"
-          onSubmitEditing={onSubmit} // burada input'ta klavyede arama tuşuna basıldığında da arama yapılmasını sağlıyoruz
+          onSubmitEditing={onSubmit}
         />
         <Pressable onPress={onSubmit} style={styles.searchButton}>
           <Text style={styles.searchButtonText}>Search</Text>
@@ -62,8 +118,8 @@ const HomeScreen = () => {
         <View
           style={{
             flex: 1,
-            justifyContent: "center",
             alignItems: "center",
+            justifyContent: "center",
           }}
         >
           <ActivityIndicator size={"large"} />
@@ -74,7 +130,7 @@ const HomeScreen = () => {
               textAlign: "center",
             }}
           >
-            Loading movies...
+            Loading
           </Text>
         </View>
       ) : error ? (
@@ -90,8 +146,36 @@ const HomeScreen = () => {
           data={movies}
           renderItem={({ item }) => <MovieCard movie={item} />}
           keyExtractor={(item, index) => `${item.imdbID}-${index}`}
-          key={`movies-${movies.length}`}
           numColumns={2}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator color={colors.activeColor} />
+            ) : hasMore ? (
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: colors.textColor,
+                  marginTop: vs(6),
+                  marginBottom: vs(15),
+                }}
+              >
+                Keep scrolling for more
+              </Text>
+            ) : movies.length > 0 ? (
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: colors.textColor,
+                  marginTop: vs(6),
+                  marginBottom: vs(15),
+                }}
+              >
+                You've seen all movies
+              </Text>
+            ) : null
+          }
         />
       )}
     </SafeAreaView>
