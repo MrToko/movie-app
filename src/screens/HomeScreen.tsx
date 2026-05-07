@@ -51,6 +51,7 @@ const HomeScreen = () => {
           placeholder="Search (e.g., batman)"
           placeholderTextColor={colors.inActiveColor}
           returnKeyType="search"
+          onSubmitEditing={onSubmit} // burada input'ta klavyede arama tuşuna basıldığında da arama yapılmasını sağlıyoruz
         />
         <Pressable onPress={onSubmit} style={styles.searchButton}>
           <Text style={styles.searchButtonText}>Search</Text>
