@@ -23,7 +23,7 @@ export default MovieCard;
 const styles = StyleSheet.create({
   movieCard: {
     width: "50%",
-    padding: s(8),
+    padding: s(12),
   },
   movieCardDetail: {
     backgroundColor: colors.movieBackgroundColor,

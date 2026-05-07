@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   StyleSheet,
@@ -8,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
-import { s } from "react-native-size-matters";
+import { s, vs } from "react-native-size-matters";
 import { useState } from "react";
 import searchMovies, { OmdbSearchItem } from "../api/omdb";
 import MovieCard from "../components/MovieCard";
@@ -16,11 +17,28 @@ import MovieCard from "../components/MovieCard";
 const HomeScreen = () => {
   const [query, setQuery] = useState("Batman");
   const [movies, setMovies] = useState<OmdbSearchItem[]>([]);
+  const [loader, setLoader] = useState(false);
+  const [error, setError] = useState("");
 
   const onSubmit = async () => {
-    const res = await searchMovies(query);
-    const incomingMovies = res.Search || [];
-    setMovies(incomingMovies);
+    setLoader(true);
+    setError("");
+
+    try {
+      const res = await searchMovies(query);
+      if (res.Response === "True") {
+        const incomingMovies = res.Search || [];
+        setMovies(incomingMovies);
+      } else {
+        setMovies([]);
+        setError(res.Error || "No movies found");
+      }
+    } catch {
+      setError("something went wrong while fetching movies");
+      setMovies([]);
+    }
+
+    setLoader(false);
   };
 
   return (
@@ -33,19 +51,49 @@ const HomeScreen = () => {
           placeholder="Search (e.g., batman)"
           placeholderTextColor={colors.inActiveColor}
           returnKeyType="search"
+          onSubmitEditing={onSubmit} // burada input'ta klavyede arama tuşuna basıldığında da arama yapılmasını sağlıyoruz
         />
         <Pressable onPress={onSubmit} style={styles.searchButton}>
           <Text style={styles.searchButtonText}>Search</Text>
         </Pressable>
       </View>
 
-      <FlatList
-        data={movies}
-        renderItem={({ item }) => <MovieCard movie={item} />}
-        keyExtractor={(item, index) => `${item.imdbID}-${index}`}
-        key={`movies-${movies.length}`}
-        numColumns={2}
-      />
+      {loader ? (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator size={"large"} />
+          <Text
+            style={{
+              color: colors.textColor,
+              marginTop: vs(4),
+              textAlign: "center",
+            }}
+          >
+            Loading movies...
+          </Text>
+        </View>
+      ) : error ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text style={{ color: colors.textColor, fontSize: s(14) }}>
+            {error}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={movies}
+          renderItem={({ item }) => <MovieCard movie={item} />}
+          keyExtractor={(item, index) => `${item.imdbID}-${index}`}
+          key={`movies-${movies.length}`}
+          numColumns={2}
+        />
+      )}
     </SafeAreaView>
   );
 };
