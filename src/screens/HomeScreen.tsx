@@ -2,40 +2,42 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import colors from "../theme/colors";
-import CATEGORIES from "../constants/categories";
 import { s, vs } from "react-native-size-matters";
+import { useEffect, useState } from "react";
 import { OmdbSearchItem, searchMovies } from "../api/omdb";
 import MovieCard from "../components/MovieCard";
-import CustomLoading from "../components/CustomLoading";
 
-const CategoriesScreen = () => {
-  // active category state'i, filmler, loading ve error state'leri tanımlanır Burada ayrıca sayfalama için page, hasMore ve loadingMore state'leri de tanımlanır
-  const [active, setActive] = useState(CATEGORIES[0]); // default olarak ilk kategori aktif olur
-  const [movies, setMovies] = useState<OmdbSearchItem[]>([]); // filmler burada tutulur
-  const [loading, setLoading] = useState(false); // veri çekilirken loading göstermek için
-  const [error, setError] = useState(""); // hata mesajı burada tutulur
+const HomeScreen = () => {
+  const [query, setQuery] = useState("Batman");
+  const [movies, setMovies] = useState<OmdbSearchItem[]>([]);
 
-  const [page, setPage] = useState(1); // hangi sayfanın yüklendiğini tutar
-  const [hasMore, setHasMore] = useState(true); // daha fazla sayfa olup olmadığını tutar
-  const [loadingMore, setLoadingMore] = useState(false); // daha fazla sayfa yüklenirken loading göstermek için
+  const [loader, setLoader] = useState(false);
+  const [error, setError] = useState("");
 
-  const fetchMovies = async (pageNum: number, isNewCategory = false) => {
-    // yeni kategori seçildiğinde loading göstermek için isNewCategory parametresi eklenir
-    if (isNewCategory) setLoading(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchMovies = async (pageNum: number, isNewSearch = false) => {
+    if (!query) {
+      setMovies([]);
+      setHasMore(false);
+      return;
+    }
+
+    if (isNewSearch) setLoader(true);
 
     setError("");
 
     try {
-      // OMDb API'sinden filmleri çekmek için searchMovies fonksiyonu çağrılır, burada aktif kategorinin query'si ve sayfa numarası parametre olarak verilir
-      const res = await searchMovies(active.query, pageNum);
+      const res = await searchMovies(query, pageNum);
 
       if (res.Response === "True") {
         const incomingMovies = res.Search || [];
@@ -66,20 +68,25 @@ const CategoriesScreen = () => {
         setError("Something went wrong");
       }
     } finally {
-      if (isNewCategory) setLoading(false);
+      if (isNewSearch) setLoader(false);
     }
   };
 
+  const onSubmit = () => {
+    setPage(1);
+    setMovies([]);
+    setHasMore(true);
+    fetchMovies(1, true);
+  };
+
   const loadMore = async () => {
-    // sayfanın sonuna gelindiğinde daha fazla film yüklemek için çağrılır
-    if (!hasMore || loading || loadingMore) return;
+    if (!hasMore || loader || loadingMore) return;
 
     setLoadingMore(true);
-
     const nextPage = page + 1;
 
     try {
-      await fetchMovies(nextPage);
+      await fetchMovies(nextPage, false);
       setPage(nextPage);
     } finally {
       setLoadingMore(false);
@@ -87,128 +94,124 @@ const CategoriesScreen = () => {
   };
 
   useEffect(() => {
-    // aktif kategori değiştiğinde filmleri yeniden çekmek için useEffect kullanılır
-    setPage(1);
-    setMovies([]);
-    setHasMore(true);
-
-    fetchMovies(1, true);
-  }, [active]);
+    onSubmit();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>
-      <View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            padding: s(12),
-            gap: s(8),
-          }}
-        >
-          {CATEGORIES.map(
-            (
-              c, // kategoriler arasında geçiş yapmak için butonlar oluşturulur
-            ) => (
-              <Pressable
-                onPress={() => setActive(c)}
-                key={c.key}
-                style={({ pressed }) => [
-                  styles.categoryItem,
-                  {
-                    backgroundColor:
-                      active.key === c.key
-                        ? colors.buttonColor
-                        : colors.borderColor,
-                    opacity: pressed ? 0.75 : 1,
-                  },
-                ]}
-              >
-                <Text style={styles.categoryText}>{c.label}</Text>
-              </Pressable>
-            ),
-          )}
-        </ScrollView>
+      <View style={styles.searchContainer}>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+          placeholder="Search (e.g., batman)"
+          placeholderTextColor={colors.inActiveColor}
+          returnKeyType="search"
+          onSubmitEditing={onSubmit}
+        />
+        <Pressable onPress={onSubmit} style={styles.searchButton}>
+          <Text style={styles.searchButtonText}>Search</Text>
+        </Pressable>
       </View>
 
-      <View style={{ flex: 1 }}>
-        {loading ? ( // filmler yüklenirken loading göstermek için conditional rendering yapılır
-          <CustomLoading />
-        ) : error ? (
-          <View
+      {loader ? (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <ActivityIndicator size={"large"} />
+          <Text
             style={{
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
+              color: colors.textColor,
+              marginTop: vs(4),
+              textAlign: "center",
             }}
           >
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : (
-          <FlatList // filmleri listelemek için FlatList kullanılır
-            data={movies}
-            renderItem={({ item }) => <MovieCard movie={item} />}
-            keyExtractor={(item, index) => `${item.imdbID}-${index}`}
-            numColumns={2}
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.3}
-            ListFooterComponent={
-              loadingMore ? (
-                <ActivityIndicator color={colors.activeColor} />
-              ) : hasMore ? (
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: colors.textColor,
-                    marginTop: vs(6),
-                    marginBottom: vs(15),
-                  }}
-                >
-                  Keep scrolling for more
-                </Text>
-              ) : movies.length > 0 ? (
-                <Text
-                  style={{
-                    textAlign: "center",
-                    color: colors.textColor,
-                    marginTop: vs(6),
-                    marginBottom: vs(15),
-                  }}
-                >
-                  You've seen all movies
-                </Text>
-              ) : null
-            }
-          />
-        )}
-      </View>
+            Loading
+          </Text>
+        </View>
+      ) : error ? (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text style={{ color: colors.textColor, fontSize: s(14) }}>
+            {error}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={movies}
+          renderItem={({ item }) => <MovieCard movie={item} />}
+          keyExtractor={(item, index) => `${item.imdbID}-${index}`}
+          numColumns={2}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator color={colors.activeColor} />
+            ) : hasMore ? (
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: colors.textColor,
+                  marginTop: vs(6),
+                  marginBottom: vs(15),
+                }}
+              >
+                Keep scrolling for more
+              </Text>
+            ) : movies.length > 0 ? (
+              <Text
+                style={{
+                  textAlign: "center",
+                  color: colors.textColor,
+                  marginTop: vs(6),
+                  marginBottom: vs(15),
+                }}
+              >
+                You've seen all movies
+              </Text>
+            ) : null
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
 
-export default CategoriesScreen;
+export default HomeScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundColor,
   },
-  categoryItem: {
-    height: vs(30),
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
+  searchContainer: {
+    padding: s(12),
+    flexDirection: "row",
+    gap: s(8),
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: s(1),
     borderColor: colors.borderColor,
-    paddingHorizontal: s(14),
-    borderRadius: 999,
-  },
-  categoryText: {
     color: colors.textColor,
-    lineHeight: vs(15),
-    fontWeight: "700",
+    backgroundColor: colors.backgroundColor,
+    borderRadius: s(8),
+    paddingHorizontal: s(10),
+    fontWeight: 700,
   },
-  errorText: {
-    color: "red",
-    textAlign: "center",
+  searchButton: {
+    backgroundColor: colors.buttonColor,
+    paddingHorizontal: s(16),
+    borderRadius: s(8),
+    justifyContent: "center",
+  },
+  searchButtonText: {
+    color: colors.textColor,
+    fontWeight: 700,
   },
 });
