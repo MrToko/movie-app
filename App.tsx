@@ -6,12 +6,8 @@ import { StatusBar } from "expo-status-bar";
 export default function App() {
   return (
     <NavigationContainer>
-      <MyTabs />
-      <StatusBar style="light" /> // Bu satır, durum çubuğunun stilini "light"
-      olarak ayarlar, böylece beyaz renkli metin ve simgeler görünür hale gelir.
-      Bu, genellikle koyu arka planlarda tercih edilir.
+      <MainStackNavigator />
+      <StatusBar style="light" />
     </NavigationContainer>
   );
 }
-//test
-// feature branch test

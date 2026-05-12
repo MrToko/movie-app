@@ -12,7 +12,7 @@ function MyTabs() {
     <Tab.Navigator
       screenOptions={{
         headerStyle: { backgroundColor: colors.backgroundColor },
-        headerTitleStyle: { color: colors.textColor, fontSize: s(18) },
+        headerTitleStyle: { color: colors.textColor, fontSize: s(24) },
         headerTintColor: colors.textColor,
         tabBarStyle: {
           backgroundColor: colors.backgroundColor,
@@ -20,7 +20,9 @@ function MyTabs() {
         },
         tabBarActiveTintColor: colors.activeColor,
         tabBarInactiveTintColor: colors.inActiveColor,
-        tabBarLabelStyle: { fontSize: s(12) },
+        tabBarLabelStyle: {
+          fontSize: s(10),
+        },
         tabBarIcon: ({ color, size, focused }) => null,
       }}
     >
@@ -31,25 +33,27 @@ function MyTabs() {
             return <Ionicons name="home" size={s(20)} color={color} />;
           },
         }}
-        name="Home"
+        name="HomeScreen"
         component={HomeScreen}
       />
       <Tab.Screen
         options={{
+          title: "Categories",
           tabBarIcon: ({ color }) => {
             return <Ionicons name="albums" size={s(20)} color={color} />;
           },
         }}
-        name="Categories"
+        name="CategoriesScreen"
         component={CategoriesScreen}
       />
       <Tab.Screen
         options={{
+          title: "Saved",
           tabBarIcon: ({ color }) => {
             return <Ionicons name="bookmark" size={s(20)} color={color} />;
           },
         }}
-        name="Saved"
+        name="SavedScreen"
         component={HomeScreen}
       />
     </Tab.Navigator>

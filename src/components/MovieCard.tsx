@@ -3,10 +3,18 @@ import React from "react";
 import { OmdbSearchItem } from "../api/omdb";
 import { s, vs } from "react-native-size-matters";
 import colors from "../theme/colors";
+import { useNavigation } from "@react-navigation/native";
 
 const MovieCard = ({ movie }: { movie: OmdbSearchItem }) => {
+  const navigator = useNavigation<any>();
+
   return (
-    <Pressable style={styles.movieCard}>
+    <Pressable // Burada onPress ile detay sayfasına gidiyoruz ve imdbID'yi parametre olarak gönderiyoruz
+      onPress={
+        () => navigator.navigate("DetailsScreen", { movieImdbID: movie.imdbID }) // navigate fonksiyonunu kullanarak "DetailsScreen" adlı ekrana gidiyoruz ve movieImdbID parametresini gönderiyoruz
+      }
+      style={styles.movieCard}
+    >
       <View style={styles.movieCardDetail}>
         <Image source={{ uri: movie.Poster }} style={styles.movieCardImage} />
         <View style={styles.movieTitles}>
