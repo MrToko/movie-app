@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     padding: s(12),
   },
   movieCardDetail: {
-    backgroundColor: colors.movieBackgroundColor,
+    backgroundColor: "#11224E",
     borderRadius: s(12),
     overflow: "hidden",
   },

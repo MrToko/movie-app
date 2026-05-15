@@ -4,9 +4,9 @@ const STORAGE_KEY = "saved.movies.v1"; // Burada v1 ekledim ki ileride storage y
 
 export type SavedMovie = { // Kaydedilen film için gerekli bilgileri tutan tip. Detay sayfasında göstermek istediğimiz bilgileri burada tutuyoruz ki kaydedilen filmler detay sayfasında eksik bilgi nedeniyle sorun yaşamasın.
   imdbID: string;
-  title: string;
-  poster: string;
-  year: string;
+  Title: string;
+  Poster: string;
+  Year: string;
 };
 
 export async function getAllSaved() { // Tüm kaydedilen filmleri AsyncStorage'dan çeken fonksiyon. Eğer bir hata olursa boş bir obje döner.

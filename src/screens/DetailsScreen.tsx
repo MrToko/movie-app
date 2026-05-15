@@ -15,10 +15,12 @@ import { s, vs } from "react-native-size-matters";
 import MovieInfo from "../components/MovieInfo";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MovieInfoRow from "../components/MovieInfoRow";
+import { isSaved, toggleSave } from "../storage/saved";
 
 const DetailsScreen = () => {
   const { name, params } = useRoute<any>();
   const [movie, setMovie] = useState<OmdbDetail | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const fetchMovieDetail = async () => {
     const res = await getMovieDetails(params.movieImdbID);
@@ -27,6 +29,14 @@ const DetailsScreen = () => {
 
   useEffect(() => {
     fetchMovieDetail();
+  }, [params.movieImdbID]);
+
+  useEffect(() => {
+    const checkSaved = async () => {
+      const savedStatus = await isSaved(params.movieImdbID);
+      setSaved(savedStatus);
+    };
+    checkSaved();
   }, [params.movieImdbID]);
 
   const textCapitilaze = (text?: string) => {
@@ -165,11 +175,23 @@ const DetailsScreen = () => {
         <Pressable
           style={{
             width: "100%",
-            backgroundColor: "#2563eb",
+            backgroundColor: saved ? "green" : "#2563eb",
             padding: s(10),
             marginTop: vs(14),
             borderRadius: 12,
             marginBottom: vs(30),
+          }}
+          onPress={async () => {
+            if (!movie) return;
+
+            const nowSaved = await toggleSave({
+              imdbID: movie?.imdbID,
+              Title: movie?.Title,
+              Poster: movie?.Poster,
+              Year: movie?.Year,
+            });
+
+            setSaved(nowSaved);
           }}
         >
           <Text
@@ -180,7 +202,7 @@ const DetailsScreen = () => {
               fontWeight: "700",
             }}
           >
-            Save
+            {saved ? "Saved" : "Save"}
           </Text>
         </Pressable>
       </ScrollView>
