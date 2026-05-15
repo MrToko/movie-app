@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { OmdbSearchItem } from "../api/omdb";
+import { OmdbSearchItem } from "../models/movie.model";
 import { s, vs } from "react-native-size-matters";
 import colors from "../theme/colors";
 import { useNavigation } from "@react-navigation/native";
