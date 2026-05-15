@@ -11,6 +11,28 @@ export type OmdbSearchItem = {
   Poster: string;
 };
 
+export type OmdbDetail = {
+  Title: string;
+  Year: string;
+  Rated?: string;
+  Released?: string;
+  Runtime?: string;
+  Genre?: string;
+  Director?: string;
+  Writer?: string;
+  Actors?: string;
+  Plot?: string;
+  Language?: string;
+  Country?: string;
+  Awards?: string;
+  Poster: string;
+  Ratings?: Array<{ Source: string; Value: string }>;
+  Metascore?: string;
+  imdbRating?: string;
+  imdbVotes?: string;
+  imdbID: string;
+  Type?: string;
+};
 export async function searchMovies(query: string, page: number = 1) {
   try {
     const url = `${API_BASE}?apikey=${API_KEY}&s=${encodeURIComponent(
