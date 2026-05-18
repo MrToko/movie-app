@@ -21,7 +21,7 @@ export const MovieProvider = ({ children }: { children: React.ReactNode }) => {
   const loadSavedMovies = async () => {
     const all = await getAllSaved();
 
-    setSavedMovies(Object.values(all));
+    setSavedMovies(Object.values(all) as OmdbSearchItem[]);
   };
 
   const isMovieSaved = (imdbID: string) => {

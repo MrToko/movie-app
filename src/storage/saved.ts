@@ -1,42 +1,102 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  setDoc,
+} from "firebase/firestore";
 
-const STORAGE_KEY = "saved.movies.v1"; // Burada v1 ekledim ki ileride storage yapısında değişiklik yaparsam eski kayıtlar etkilenmesin. Versiyonlama gibi düşünebiliriz. Eğer yapıyı değiştirecek bir durum olursa burada v2 yaparız ve eski kayıtlar etkilenmez.
+import { auth, db } from "../firebase/config";
 
-export type SavedMovie = { // Kaydedilen film için gerekli bilgileri tutan tip. Detay sayfasında göstermek istediğimiz bilgileri burada tutuyoruz ki kaydedilen filmler detay sayfasında eksik bilgi nedeniyle sorun yaşamasın.
+export type SavedMovie = {
   imdbID: string;
   Title: string;
   Poster: string;
   Year: string;
 };
 
-export async function getAllSaved() { // Tüm kaydedilen filmleri AsyncStorage'dan çeken fonksiyon. Eğer bir hata olursa boş bir obje döner.
+function getUserSavedMoviesCollection() {
+  const userId = auth.currentUser?.uid;
+
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  return collection(
+    db,
+    "users",
+    userId,
+    "savedMovies"
+  );
+}
+
+export async function getAllSaved(): Promise<
+  Record<string, SavedMovie>
+> {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
+    const querySnapshot = await getDocs(
+      getUserSavedMoviesCollection()
+    );
+
+    const movies: Record<string, SavedMovie> = {};
+
+    querySnapshot.forEach((document) => {
+      const data = document.data() as SavedMovie;
+
+      movies[data.imdbID] = data;
+    });
+
+    return movies;
+  } catch (error) {
+    console.log("Error getting saved movies:", error);
+
     return {};
   }
 }
 
-export async function isSaved(imdbID: string) { // Bir filmin kaydedilip kaydedilmediğini kontrol eden fonksiyon. Tüm kaydedilen filmleri çekip imdbID'ye göre kontrol yapar. Eğer bir hata olursa false döner.
+export async function isSaved(imdbID: string) {
   const all = await getAllSaved();
+
   return Boolean(all[imdbID]);
 }
 
-export async function toggleSave(movie: SavedMovie) { // Bir filmi kaydetmek veya kaydı kaldırmak için kullanılan fonksiyon. Önce tüm kaydedilen filmleri çeker, sonra verilen filmin imdbID'sine göre kaydedilmiş mi kontrol eder. Eğer kaydedilmişse siler, kaydedilmemişse ekler. Son olarak güncellenmiş listeyi AsyncStorage'a kaydeder. Fonksiyonun sonunda filmin şu an kaydedilmiş olup olmadığını boolean olarak döner.
-  const all = await getAllSaved();
-  let nowSaved: boolean;
+export async function toggleSave(movie: SavedMovie) {
+  try {
+    const userId = auth.currentUser?.uid;
 
-  if (all[movie.imdbID]) {  // 
-    delete all[movie.imdbID]; // Eğer film zaten kaydedilmişse, kaydı siler.
-    nowSaved = false;
-  } else {
-    all[movie.imdbID] = movie; // Eğer film kaydedilmemişse, kaydı ekler.
-    nowSaved = true;
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+
+    const movieRef = doc(
+      db,
+      "users",
+      userId,
+      "savedMovies",
+      movie.imdbID
+    );
+
+    const all = await getAllSaved();
+
+    let nowSaved: boolean;
+
+    if (all[movie.imdbID]) {
+      await deleteDoc(movieRef);
+
+      nowSaved = false;
+    } else {
+      await setDoc(movieRef, movie);
+
+      nowSaved = true;
+    }
+
+    return nowSaved;
+  } catch (error) {
+    console.log(
+      "Error toggling saved movie:",
+      error
+    );
+
+    return false;
   }
-
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(all)); 
-  // Güncellenmiş kaydedilen filmler listesini AsyncStorage'a kaydeder. Eğer bir hata olursa bu işlem başarısız olabilir, ancak burada hatayı yakalayıp yönetmiyoruz. İleride isterseniz buraya try-catch ekleyebilirsiniz.
-
-  return nowSaved;
 }
